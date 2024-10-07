@@ -7,17 +7,33 @@ import { FiLoader } from "react-icons/fi";
 const HttpClient = () => {
   const [url, setUrl] = useState("");
   const [method, setMethod] = useState("GET");
-  const [headers, setHeaders] = useState("");
-  const [body, setBody] = useState("");
+  const [headers, setHeaders] = useState([{ key: "", value: "" }]);
+  const [body, setBody] = useState([{ key: "", value: "" }]);
+  const [token, setToken] = useState(""); // State for JWT token
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Convert key-value pairs to JSON object
+  const parseKeyValuePairs = (pairs) => {
+    return pairs.reduce((acc, pair) => {
+      if (pair.key) acc[pair.key] = pair.value;
+      return acc;
+    }, {});
+  };
+
   const handleRequest = async () => {
     setLoading(true);
     try {
-      const parsedHeaders = headers ? JSON.parse(headers) : {};
-      const parsedBody = body ? JSON.parse(body) : null;
+      // Convert headers array to object
+      const parsedHeaders = parseKeyValuePairs(headers);
+
+      // Add JWT token to headers
+      if (token) {
+        parsedHeaders["Authorization"] = `Bearer ${token}`;
+      }
+
+      const parsedBody = method !== "GET" ? parseKeyValuePairs(body) : null;
 
       const result = await axios({
         method,
@@ -36,6 +52,20 @@ const HttpClient = () => {
     }
   };
 
+  const handleAddField = (type) => {
+    if (type === "header") {
+      setHeaders([...headers, { key: "", value: "" }]);
+    } else if (type === "body") {
+      setBody([...body, { key: "", value: "" }]);
+    }
+  };
+
+  const handleFieldChange = (index, field, value, type) => {
+    const newFields = type === "header" ? [...headers] : [...body];
+    newFields[index][field] = value;
+    type === "header" ? setHeaders(newFields) : setBody(newFields);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">HTTP Client</h2>
@@ -43,7 +73,6 @@ const HttpClient = () => {
       {/* Request Form */}
       <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl">
         <div className="flex gap-4 mb-4">
-          {/* Method Dropdown */}
           <div>
             <label className="block text-sm font-medium text-gray-700">
               Method:
@@ -51,7 +80,7 @@ const HttpClient = () => {
             <select
               value={method}
               onChange={(e) => setMethod(e.target.value)}
-              className="mt-1 block px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm"
             >
               <option value="GET">GET</option>
               <option value="POST">POST</option>
@@ -61,7 +90,6 @@ const HttpClient = () => {
             </select>
           </div>
 
-          {/* URL Input */}
           <div className="w-full">
             <label className="block text-sm font-medium text-gray-700">
               URL:
@@ -70,46 +98,102 @@ const HttpClient = () => {
               type="text"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
               placeholder="https://example.com"
             />
           </div>
         </div>
 
+        {/* JWT Token Input */}
+        <div className="mb-4">
+          <label className="block text-sm font-medium text-gray-700">
+            JWT Token:
+          </label>
+          <input
+            type="text"
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm"
+            placeholder="Enter JWT Token"
+          />
+        </div>
+
         {/* Headers Input */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700">
-            Headers (JSON):
+            Headers:
           </label>
-          <textarea
-            value={headers}
-            onChange={(e) => setHeaders(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-            placeholder='{"Content-Type": "application/json"}'
-            rows="3"
-          ></textarea>
+          {headers.map((header, index) => (
+            <div key={index} className="flex gap-2 mb-2">
+              <input
+                type="text"
+                value={header.key}
+                onChange={(e) =>
+                  handleFieldChange(index, "key", e.target.value, "header")
+                }
+                className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Key"
+              />
+              <input
+                type="text"
+                value={header.value}
+                onChange={(e) =>
+                  handleFieldChange(index, "value", e.target.value, "header")
+                }
+                className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md"
+                placeholder="Value"
+              />
+            </div>
+          ))}
+          <button
+            onClick={() => handleAddField("header")}
+            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
+          >
+            Add Header
+          </button>
         </div>
 
         {/* Body Input (if not GET) */}
         {method !== "GET" && (
           <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700">
-              Body (JSON):
+              Body:
             </label>
-            <textarea
-              value={body}
-              onChange={(e) => setBody(e.target.value)}
-              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              placeholder='{"key": "value"}'
-              rows="3"
-            ></textarea>
+            {body.map((item, index) => (
+              <div key={index} className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={item.key}
+                  onChange={(e) =>
+                    handleFieldChange(index, "key", e.target.value, "body")
+                  }
+                  className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Key"
+                />
+                <input
+                  type="text"
+                  value={item.value}
+                  onChange={(e) =>
+                    handleFieldChange(index, "value", e.target.value, "body")
+                  }
+                  className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md"
+                  placeholder="Value"
+                />
+              </div>
+            ))}
+            <button
+              onClick={() => handleAddField("body")}
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
+            >
+              Add Body Field
+            </button>
           </div>
         )}
 
         {/* Submit Button */}
         <button
           onClick={handleRequest}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-sm w-full transition"
+          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-sm w-full"
           disabled={loading}
         >
           {loading ? (
@@ -126,7 +210,7 @@ const HttpClient = () => {
       {/* Response Section */}
       <div className="mt-6 w-full max-w-4xl bg-white shadow-lg rounded-lg p-8">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Response:</h3>
-        <div className="bg-gray-100 rounded-lg p-4 overflow-auto h-[700px]">
+        <div className="bg-gray-100 p-4 rounded-lg overflow-auto h-[500px]">
           {response && (
             <SyntaxHighlighter language="json" style={solarizedlight}>
               {JSON.stringify(response, null, 2)}
@@ -134,7 +218,7 @@ const HttpClient = () => {
           )}
           {error && (
             <SyntaxHighlighter language="json" style={solarizedlight}>
-              {error}
+              {JSON.stringify({ error: error }, null, 2)}
             </SyntaxHighlighter>
           )}
         </div>
