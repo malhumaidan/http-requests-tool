@@ -147,7 +147,7 @@ const HttpClient = () => {
           ))}
           <button
             onClick={() => handleAddField("header")}
-            className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
+            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
           >
             Add Header
           </button>
@@ -193,7 +193,7 @@ const HttpClient = () => {
         {/* Submit Button */}
         <button
           onClick={handleRequest}
-          className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md shadow-sm w-full"
+          className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-sm w-full"
           disabled={loading}
         >
           {loading ? (
