@@ -13,6 +13,7 @@ const HttpClient = () => {
   const [response, setResponse] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false); // State for copy status
 
   // Convert key-value pairs to JSON object
   const parseKeyValuePairs = (pairs) => {
@@ -64,6 +65,17 @@ const HttpClient = () => {
     const newFields = type === "header" ? [...headers] : [...body];
     newFields[index][field] = value;
     type === "header" ? setHeaders(newFields) : setBody(newFields);
+  };
+
+  const handleCopy = () => {
+    if (response) {
+      navigator.clipboard.writeText(JSON.stringify(response, null, 2));
+    } else if (error) {
+      navigator.clipboard.writeText(JSON.stringify({ error: error }, null, 2));
+    }
+
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
   };
 
   return (
@@ -208,8 +220,18 @@ const HttpClient = () => {
       </div>
 
       {/* Response Section */}
-      <div className="mt-6 w-full max-w-4xl bg-white shadow-lg rounded-lg p-8">
+      <div className="mt-6 w-full max-w-4xl bg-white shadow-lg rounded-lg p-8 relative">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Response:</h3>
+
+        {/* Copy Button */}
+        <button
+          className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-md"
+          onClick={handleCopy}
+        >
+          {copied ? "Copied!" : "Copy"}
+        </button>
+
+        {/* Response Box */}
         <div className="bg-gray-100 p-4 rounded-lg overflow-auto h-[500px]">
           {response && (
             <SyntaxHighlighter language="json" style={solarizedlight}>
