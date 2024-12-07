@@ -1,8 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { solarizedlight } from "react-syntax-highlighter/dist/esm/styles/prism";
-import { FiLoader } from "react-icons/fi";
+import { FiLoader, FiTrash } from "react-icons/fi";
 
 const HttpClient = () => {
   const [url, setUrl] = useState("");
@@ -14,6 +14,21 @@ const HttpClient = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false); // State for copy status
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (event.metaKey && event.key === "Enter") {
+        event.preventDefault(); // Prevent default browser behavior
+        handleRequest(); // Trigger the send button's action
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown); // Cleanup listener
+    };
+  }, []);
 
   // Convert key-value pairs to JSON object
   const parseKeyValuePairs = (pairs) => {
@@ -78,15 +93,25 @@ const HttpClient = () => {
     setTimeout(() => setCopied(false), 2000); // Reset after 2 seconds
   };
 
+  const handleRemoveField = (index, type) => {
+    if (type === "header") {
+      const updatedHeaders = headers.filter((_, i) => i !== index);
+      setHeaders(updatedHeaders);
+    } else if (type === "body") {
+      const updatedBody = body.filter((_, i) => i !== index);
+      setBody(updatedBody);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center py-10">
       <h2 className="text-3xl font-bold mb-6 text-gray-800">HTTP Client</h2>
 
       {/* Request Form */}
-      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-4xl">
+      <div className="bg-white shadow-lg rounded-lg p-8 w-[95%]">
         <div className="flex gap-4 mb-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 text-start">
               Method:
             </label>
             <select
@@ -103,7 +128,7 @@ const HttpClient = () => {
           </div>
 
           <div className="w-full">
-            <label className="block text-sm font-medium text-gray-700">
+            <label className="block text-sm font-medium text-gray-700 text-start">
               URL:
             </label>
             <input
@@ -114,11 +139,29 @@ const HttpClient = () => {
               placeholder="https://example.com"
             />
           </div>
+
+          {/* Submit Button */}
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={handleRequest}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-sm "
+              disabled={loading}
+            >
+              {loading ? (
+                <span className="flex justify-center items-center">
+                  <FiLoader className="animate-spin mr-2" />
+                  Sending...
+                </span>
+              ) : (
+                "Send"
+              )}
+            </button>
+          </div>
         </div>
 
         {/* JWT Token Input */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium text-gray-700 text-start">
             JWT Token:
           </label>
           <input
@@ -130,13 +173,21 @@ const HttpClient = () => {
           />
         </div>
 
-        {/* Headers Input */}
+        {/* // Headers Input Section */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700">
-            Headers:
-          </label>
+          <div className="flex justify-between mb-2">
+            <label className="block text-sm font-medium text-gray-700 text-start">
+              Headers:
+            </label>
+            <button
+              onClick={() => handleAddField("header")}
+              className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
+            >
+              Add Header
+            </button>
+          </div>
           {headers.map((header, index) => (
-            <div key={index} className="flex gap-2 mb-2">
+            <div key={index} className="flex gap-2 mb-2 items-center">
               <input
                 type="text"
                 value={header.key}
@@ -155,24 +206,31 @@ const HttpClient = () => {
                 className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md"
                 placeholder="Value"
               />
+              <FiTrash
+                onClick={() => handleRemoveField(index, "header")}
+                className="text-red-500 cursor-pointer hover:text-red-700"
+                size={20}
+              />
             </div>
           ))}
-          <button
-            onClick={() => handleAddField("header")}
-            className="bg-red-500 hover:bg-red-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
-          >
-            Add Header
-          </button>
         </div>
 
-        {/* Body Input (if not GET) */}
+        {/* // Body Input Section (if not GET) */}
         {method !== "GET" && (
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700">
-              Body:
-            </label>
+            <div className="flex justify-between mb-2">
+              <label className="block text-sm font-medium text-gray-700 text-start">
+                Body:
+              </label>
+              <button
+                onClick={() => handleAddField("body")}
+                className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
+              >
+                Add Body Field
+              </button>
+            </div>
             {body.map((item, index) => (
-              <div key={index} className="flex gap-2 mb-2">
+              <div key={index} className="flex gap-2 mb-2 items-center">
                 <input
                   type="text"
                   value={item.key}
@@ -191,36 +249,19 @@ const HttpClient = () => {
                   className="block w-1/2 px-3 py-2 border border-gray-300 rounded-md"
                   placeholder="Value"
                 />
+                <FiTrash
+                  onClick={() => handleRemoveField(index, "body")}
+                  className="text-red-500 cursor-pointer hover:text-red-700"
+                  size={20}
+                />
               </div>
             ))}
-            <button
-              onClick={() => handleAddField("body")}
-              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-1 px-2 rounded-md shadow-sm"
-            >
-              Add Body Field
-            </button>
           </div>
         )}
-
-        {/* Submit Button */}
-        <button
-          onClick={handleRequest}
-          className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md shadow-sm w-full"
-          disabled={loading}
-        >
-          {loading ? (
-            <span className="flex justify-center items-center">
-              <FiLoader className="animate-spin mr-2" />
-              Sending...
-            </span>
-          ) : (
-            "Send Request"
-          )}
-        </button>
       </div>
 
       {/* Response Section */}
-      <div className="mt-6 w-full max-w-4xl bg-white shadow-lg rounded-lg p-8 relative">
+      <div className="mt-6 w-[95%] bg-white shadow-lg rounded-lg p-8 relative">
         <h3 className="text-xl font-semibold text-gray-800 mb-4">Response:</h3>
 
         {/* Copy Button */}
