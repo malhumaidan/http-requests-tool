@@ -3,6 +3,7 @@ import axios from "axios";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { solarizedlight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { FiLoader, FiTrash } from "react-icons/fi";
+import ResponseSection from "../components/ResponseSection";
 
 const HttpClient = () => {
   const [url, setUrl] = useState("");
@@ -11,6 +12,7 @@ const HttpClient = () => {
   const [body, setBody] = useState([{ key: "", value: "" }]);
   const [token, setToken] = useState(""); // State for JWT token
   const [response, setResponse] = useState(null);
+  const [responseStatus, setResponseStatus] = useState(null);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false); // State for copy status
@@ -58,10 +60,16 @@ const HttpClient = () => {
         data: parsedBody,
       });
 
+      console.log(result);
+      console.log(result.status);
+      console.log("text" + result.statusText);
+
       setResponse(result.data);
+      setResponseStatus(result.status);
       setError(null);
     } catch (err) {
       setResponse(null);
+      // setResponseStatus(null);
       setError(err.message || "An error occurred");
     } finally {
       setLoading(false);
@@ -261,31 +269,13 @@ const HttpClient = () => {
       </div>
 
       {/* Response Section */}
-      <div className="mt-6 w-[95%] bg-white shadow-lg rounded-lg p-8 relative">
-        <h3 className="text-xl font-semibold text-gray-800 mb-4">Response:</h3>
-
-        {/* Copy Button */}
-        <button
-          className="absolute top-2 right-2 bg-blue-500 hover:bg-blue-600 text-white py-1 px-3 rounded-md"
-          onClick={handleCopy}
-        >
-          {copied ? "Copied!" : "Copy"}
-        </button>
-
-        {/* Response Box */}
-        <div className="bg-gray-100 p-4 rounded-lg overflow-auto h-[500px]">
-          {response && (
-            <SyntaxHighlighter language="json" style={solarizedlight}>
-              {JSON.stringify(response, null, 2)}
-            </SyntaxHighlighter>
-          )}
-          {error && (
-            <SyntaxHighlighter language="json" style={solarizedlight}>
-              {JSON.stringify({ error: error }, null, 2)}
-            </SyntaxHighlighter>
-          )}
-        </div>
-      </div>
+      <ResponseSection
+        response={response}
+        error={error}
+        statusCode={responseStatus}
+        handleCopy={handleCopy}
+        copied={copied}
+      />
     </div>
   );
 };
